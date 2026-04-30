@@ -24,8 +24,18 @@ export type QuizResultRow = {
  */
 export type WebhookPayload = {
   userId: string;
-  score: number;
-  answers: Record<number, string>;
+  totalScore: number;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  accuracy: number;
+  results: {
+    questionIndex: number;
+    question: string;
+    selectedAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+  }[];
 };
 
 /** 画面のクイズ状態（要件どおり） */

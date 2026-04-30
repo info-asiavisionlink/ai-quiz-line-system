@@ -104,8 +104,12 @@ export default function QuizPageClient() {
 
   const buildResults = useCallback((): {
     rows: QuizResultRow[];
-    score: number;
+    totalScore: number;
+    totalQuestions: number;
     correctCount: number;
+    wrongCount: number;
+    accuracy: number;
+    resultDetails: WebhookPayload["results"];
   } | null => {
     if (quiz.length !== TOTAL_QUESTIONS) {
       setSubmitError("問題数が不正です");
@@ -124,24 +128,44 @@ export default function QuizPageClient() {
       return null;
     }
 
-    const rows: QuizResultRow[] = [];
-    let correctCount = 0;
-    for (let i = 0; i < quiz.length; i++) {
-      const q = quiz[i];
-      if (!q) continue;
-      const userAnswer = answers[i] ?? "";
-      const isCorrect = userAnswer.trim() === q.answer.trim();
-      if (isCorrect) correctCount += 1;
-      rows.push({
+    const resultDetails: WebhookPayload["results"] = quiz.map((q, index) => {
+      const selected = answers[index] ?? "";
+      const correct = q.answer;
+      return {
+        questionIndex: index + 1,
         question: q.question,
-        userAnswer,
-        correctAnswer: q.answer,
-        isCorrect,
-        explanation: q.explanation,
-      });
-    }
-    const computedScore = correctCount * POINTS_PER_QUESTION;
-    return { rows, score: computedScore, correctCount };
+        selectedAnswer: selected,
+        correctAnswer: correct,
+        isCorrect: selected === correct,
+      };
+    });
+
+    const correctCount = resultDetails.filter((r) => r.isCorrect).length;
+    const totalQuestions = resultDetails.length;
+    const totalScore = correctCount * POINTS_PER_QUESTION;
+    const wrongCount = totalQuestions - correctCount;
+    const accuracy =
+      totalQuestions > 0
+        ? Math.round((correctCount / totalQuestions) * 100)
+        : 0;
+
+    const rows: QuizResultRow[] = resultDetails.map((detail, i) => ({
+      question: detail.question,
+      userAnswer: detail.selectedAnswer,
+      correctAnswer: detail.correctAnswer,
+      isCorrect: detail.isCorrect,
+      explanation: quiz[i]?.explanation ?? "（解説なし）",
+    }));
+
+    return {
+      rows,
+      totalScore,
+      totalQuestions,
+      correctCount,
+      wrongCount,
+      accuracy,
+      resultDetails,
+    };
   }, [answers, quiz]);
 
   const handleShowResults = useCallback(async () => {
@@ -158,16 +182,26 @@ export default function QuizPageClient() {
     setState((prev) => ({
       ...prev,
       result: built.rows,
-      score: built.score,
+      score: built.totalScore,
       isFinished: true,
     }));
 
     const payload: WebhookPayload = {
       userId,
-      score: built.score,
-      answers,
+      totalScore: built.totalScore,
+      totalQuestions: built.totalQuestions,
+      correctCount: built.correctCount,
+      wrongCount: built.wrongCount,
+      accuracy: built.accuracy,
+      results: built.resultDetails,
     };
 
+    console.log("RESULT DETAILS:", built.resultDetails);
+    console.log("SUMMARY:", {
+      totalScore: built.totalScore,
+      correctCount: built.correctCount,
+      accuracy: built.accuracy,
+    });
     console.log("[Quiz] webhook payload", payload);
     setIsSubmitting(true);
     try {
@@ -298,14 +332,13 @@ export default function QuizPageClient() {
             <p className="mt-1 text-sm text-zinc-500">{resultDate}</p>
           )}
           <p className="mt-4 text-4xl font-extrabold tabular-nums">
-            {score}
-            <span className="text-2xl font-bold">点</span>
+            あなたのスコア: {score} / 100
           </p>
           <p className="mt-2 text-lg font-semibold">
             {passed ? "クリア" : "再テストしてください"}
           </p>
           <p className="mt-1 text-sm text-zinc-600">
-            正解数 {result.filter((r) => r.isCorrect).length} / {TOTAL_QUESTIONS}
+            正解数: {result.filter((r) => r.isCorrect).length} / {TOTAL_QUESTIONS}
           </p>
 
           <ul className="mt-6 flex max-h-[60vh] flex-col gap-4 overflow-y-auto rounded-xl bg-zinc-50 p-4 dark:bg-zinc-950">

@@ -11,9 +11,12 @@ function isPayload(x: unknown): x is WebhookPayload {
   const o = x as Record<string, unknown>;
   return (
     typeof o.userId === "string" &&
-    typeof o.score === "number" &&
-    o.answers != null &&
-    typeof o.answers === "object"
+    typeof o.totalScore === "number" &&
+    typeof o.totalQuestions === "number" &&
+    typeof o.correctCount === "number" &&
+    typeof o.wrongCount === "number" &&
+    typeof o.accuracy === "number" &&
+    Array.isArray(o.results)
   );
 }
 
