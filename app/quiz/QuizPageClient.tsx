@@ -19,7 +19,8 @@ type ApiGenerateOk = { ok: true; quiz: QuizQuestion[]; meta?: { count: number } 
 type ApiGenerateErr = { ok: false; error: string };
 type ApiGenerate = ApiGenerateOk | ApiGenerateErr;
 
-export function QuizPageClient() {
+export default function QuizPageClient() {
+  console.log("[QuizPageClient] render");
   const searchParams = useSearchParams();
   const userId = useMemo(
     () => searchParams.get("userId")?.trim() || "",
@@ -220,7 +221,7 @@ export function QuizPageClient() {
   if (loadState === "loading" || loadState === "idle") {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-4 py-8">
-        <p className="text-lg text-zinc-600">クイズを読み込み中…</p>
+        <p className="text-lg text-zinc-600">クイズ生成中...</p>
       </div>
     );
   }
@@ -230,6 +231,7 @@ export function QuizPageClient() {
       <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 px-4 py-8">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800 shadow-sm">
           <h1 className="text-xl font-bold">読み込みエラー</h1>
+          <p className="mt-2 font-medium">クイズ生成中...</p>
           <p className="mt-2">{loadError}</p>
         </div>
         <button
