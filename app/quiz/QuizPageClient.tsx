@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   emptyQuizState,
   type QuizQuestion,
@@ -20,6 +21,7 @@ type ApiGenerate = ApiGenerateOk | ApiGenerateErr;
 
 export default function QuizPageClient() {
   console.log("[QuizPageClient] render");
+  const searchParams = useSearchParams();
 
   const [state, setState] = useState<QuizStateShape>(() => emptyQuizState());
   const { quiz, answers, result, score, isFinished } = state;
@@ -31,17 +33,13 @@ export default function QuizPageClient() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultDate, setResultDate] = useState<string | null>(null);
-  const [userId, setUserId] = useState("anonymous");
-  const [hasUserId, setHasUserId] = useState(false);
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const rawUserId = params.get("userId")?.trim() ?? "";
-    const resolvedUserId = rawUserId || "anonymous";
-    setUserId(resolvedUserId);
-    setHasUserId(rawUserId.length > 0);
-    console.log("USER ID:", resolvedUserId);
-  }, []);
+    const id = searchParams.get("userId");
+    console.log("USER ID:", id);
+    if (id) setUserId(id);
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,7 +139,7 @@ export default function QuizPageClient() {
 
   const handleShowResults = useCallback(async () => {
     setSubmitError(null);
-    if (!hasUserId) {
+    if (!userId) {
       setSubmitError("userId がありません。LINEのURLから再アクセスしてください。");
       return;
     }
@@ -193,7 +191,7 @@ export default function QuizPageClient() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [answers, buildResults, hasUserId, userId]);
+  }, [answers, buildResults, userId]);
 
   const handleRetest = useCallback(() => {
     console.log("[Quiz] retest — reload");
@@ -247,7 +245,7 @@ export default function QuizPageClient() {
         <p className="mt-1 text-sm text-zinc-500">
           1問10点・100点満点 / 60点以上 → 合格
         </p>
-        {hasUserId ? (
+        {userId ? (
           <p className="mt-2 text-xs text-zinc-400">userId: {userId}</p>
         ) : (
           <p className="mt-2 text-xs text-red-600">
