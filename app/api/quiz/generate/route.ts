@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  parseSheetRow,
-  pickRandomQuestions,
+  buildQuizFromJapaneseRows,
+  parseJapaneseQuizRow,
 } from "@/lib/quiz-helpers";
-import type { QuizQuestion } from "@/lib/types/quiz";
 
 export const dynamic = "force-dynamic";
 
@@ -57,16 +56,16 @@ export async function GET() {
       );
     }
 
-    const pool: QuizQuestion[] = [];
-    for (const row of data) {
-      if (row == null || typeof row !== "object") continue;
-      const q = parseSheetRow(row as Record<string, unknown>);
-      if (q) pool.push(q);
-    }
+    console.log("Loaded rows:", data.length);
 
-    console.log("[api/quiz/generate] parsed pool size", pool.length);
+    const validRows = data
+      .filter((row): row is Record<string, unknown> => row != null && typeof row === "object")
+      .map((row) => parseJapaneseQuizRow(row))
+      .filter((row): row is NonNullable<typeof row> => row !== null);
 
-    const quiz = pickRandomQuestions(pool, QUESTION_COUNT);
+    console.log("Valid rows:", validRows.length);
+
+    const quiz = buildQuizFromJapaneseRows(validRows, QUESTION_COUNT);
 
     return NextResponse.json({
       ok: true,

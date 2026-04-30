@@ -106,6 +106,75 @@ export function parseSheetRow(row: RawRow): QuizQuestion | null {
   };
 }
 
+type JapaneseQuizRow = {
+  name: string;
+  canDo: string;
+  explanation: string;
+};
+
+/**
+ * 日本語カラム（言語名・ツール名 / 何ができる？ / AI要約 or 概要説明）を
+ * クイズ生成用の有効行へ変換する。
+ */
+export function parseJapaneseQuizRow(row: RawRow): JapaneseQuizRow | null {
+  const name = cell(row, "言語名・ツール名");
+  const canDo = cell(row, "何ができる？");
+  const explanation = cell(row, "AI要約") || cell(row, "概要説明") || "（解説なし）";
+
+  if (!name || !canDo) return null;
+
+  return { name, canDo, explanation };
+}
+
+/**
+ * 日本語スプレッドシート専用の4択クイズを生成する。
+ * - 問題文: 「{言語名・ツール名}でできることはどれ？」
+ * - 正解: 何ができる？
+ * - 不正解: 他行の何ができる？からランダム3件
+ */
+export function buildQuizFromJapaneseRows(
+  validRows: JapaneseQuizRow[],
+  count: number
+): QuizQuestion[] {
+  if (validRows.length < count) {
+    throw new Error(
+      `有効な行が ${validRows.length} 件しかありません。最低 ${count} 件必要です。`
+    );
+  }
+
+  const selectedRows = shuffleInPlace(validRows).slice(0, count);
+
+  const quiz = selectedRows.map((row) => {
+    const wrongPool = validRows
+      .filter((r) => r.name !== row.name && r.canDo !== row.canDo)
+      .map((r) => r.canDo);
+
+    const uniqueWrongPool = Array.from(new Set(wrongPool));
+    if (uniqueWrongPool.length < 3) {
+      throw new Error(
+        `「${row.name}」の不正解候補が不足しています（3件未満）。`
+      );
+    }
+
+    const wrongOptions = shuffleInPlace(uniqueWrongPool).slice(0, 3);
+    const options = shuffleInPlace([row.canDo, ...wrongOptions]) as [
+      string,
+      string,
+      string,
+      string,
+    ];
+
+    return {
+      question: `${row.name}でできることはどれ？`,
+      options,
+      answer: row.canDo,
+      explanation: row.explanation,
+    };
+  });
+
+  return quiz;
+}
+
 export function pickRandomQuestions(
   pool: QuizQuestion[],
   count: number
