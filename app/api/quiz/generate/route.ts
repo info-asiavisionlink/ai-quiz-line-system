@@ -6,7 +6,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const QUESTION_COUNT = 20;
+const QUESTION_COUNT = 10;
 
 function getSheetUrl(): string | null {
   const id = process.env.QUIZ_SPREADSHEET_ID?.trim();

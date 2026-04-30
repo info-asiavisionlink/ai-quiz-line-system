@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   emptyQuizState,
   type QuizQuestion,
@@ -11,9 +10,9 @@ import {
 } from "@/lib/types/quiz";
 import { formatDateTimeJST } from "@/lib/quiz-helpers";
 
-const PASS_SCORE = 80;
-const POINTS_PER_QUESTION = 5;
-const TOTAL_QUESTIONS = 20;
+const PASS_SCORE = 60;
+const POINTS_PER_QUESTION = 10;
+const TOTAL_QUESTIONS = 10;
 
 type ApiGenerateOk = { ok: true; quiz: QuizQuestion[]; meta?: { count: number } };
 type ApiGenerateErr = { ok: false; error: string };
@@ -21,11 +20,6 @@ type ApiGenerate = ApiGenerateOk | ApiGenerateErr;
 
 export default function QuizPageClient() {
   console.log("[QuizPageClient] render");
-  const searchParams = useSearchParams();
-  const userId = useMemo(
-    () => searchParams.get("userId")?.trim() || "",
-    [searchParams]
-  );
 
   const [state, setState] = useState<QuizStateShape>(() => emptyQuizState());
   const { quiz, answers, result, score, isFinished } = state;
@@ -37,14 +31,17 @@ export default function QuizPageClient() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultDate, setResultDate] = useState<string | null>(null);
+  const [userId, setUserId] = useState("anonymous");
+  const [hasUserId, setHasUserId] = useState(false);
 
   useEffect(() => {
-    if (!userId) {
-      console.log("[Quiz] userId is empty (set ?userId= from LINE URL)");
-    } else {
-      console.log("[Quiz] userId", userId);
-    }
-  }, [userId]);
+    const params = new URLSearchParams(window.location.search);
+    const rawUserId = params.get("userId")?.trim() ?? "";
+    const resolvedUserId = rawUserId || "anonymous";
+    setUserId(resolvedUserId);
+    setHasUserId(rawUserId.length > 0);
+    console.log("USER ID:", resolvedUserId);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +141,10 @@ export default function QuizPageClient() {
 
   const handleShowResults = useCallback(async () => {
     setSubmitError(null);
+    if (!hasUserId) {
+      setSubmitError("userId がありません。LINEのURLから再アクセスしてください。");
+      return;
+    }
     const built = buildResults();
     if (!built) return;
 
@@ -157,17 +158,11 @@ export default function QuizPageClient() {
     }));
 
     const payload: WebhookPayload = {
-      userId: userId || "anonymous",
+      userId,
       score: built.score,
       correctCount: built.correctCount,
-      total: TOTAL_QUESTIONS,
-      date: jst,
-      results: built.rows.map((r) => ({
-        question: r.question,
-        userAnswer: r.userAnswer,
-        correctAnswer: r.correctAnswer,
-        isCorrect: r.isCorrect,
-      })),
+      totalQuestions: TOTAL_QUESTIONS,
+      answers,
     };
 
     console.log("[Quiz] webhook payload", payload);
@@ -198,7 +193,7 @@ export default function QuizPageClient() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [buildResults, userId]);
+  }, [answers, buildResults, hasUserId, userId]);
 
   const handleRetest = useCallback(() => {
     console.log("[Quiz] retest — reload");
@@ -248,15 +243,15 @@ export default function QuizPageClient() {
   return (
     <div className="mx-auto min-h-screen max-w-lg px-4 py-6 pb-32">
       <header className="mb-6 rounded-2xl bg-white p-5 shadow-md ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
-        <h1 className="text-2xl font-bold tracking-tight">4択クイズ（20問）</h1>
+        <h1 className="text-2xl font-bold tracking-tight">4択クイズ（10問）</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          1問5点・100点満点 / 合格 {PASS_SCORE}点以上
+          1問10点・100点満点 / 60点以上 → 合格
         </p>
-        {userId ? (
+        {hasUserId ? (
           <p className="mt-2 text-xs text-zinc-400">userId: {userId}</p>
         ) : (
-          <p className="mt-2 text-xs text-amber-600">
-            userId 未指定（URL に ?userId= を付与してください）
+          <p className="mt-2 text-xs text-red-600">
+            userId 未指定（LINEのURLからアクセスしてください）
           </p>
         )}
       </header>

@@ -26,14 +26,8 @@ export type WebhookPayload = {
   userId: string;
   score: number;
   correctCount: number;
-  total: number;
-  date: string;
-  results: {
-    question: string;
-    userAnswer: string;
-    correctAnswer: string;
-    isCorrect: boolean;
-  }[];
+  totalQuestions: number;
+  answers: Record<number, string>;
 };
 
 /** 画面のクイズ状態（要件どおり） */
