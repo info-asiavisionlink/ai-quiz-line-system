@@ -12,8 +12,6 @@ function isPayload(x: unknown): x is WebhookPayload {
   return (
     typeof o.userId === "string" &&
     typeof o.score === "number" &&
-    typeof o.correctCount === "number" &&
-    typeof o.totalQuestions === "number" &&
     o.answers != null &&
     typeof o.answers === "object"
   );

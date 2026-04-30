@@ -25,8 +25,6 @@ export type QuizResultRow = {
 export type WebhookPayload = {
   userId: string;
   score: number;
-  correctCount: number;
-  totalQuestions: number;
   answers: Record<number, string>;
 };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   emptyQuizState,
   type QuizQuestion,
@@ -21,7 +20,6 @@ type ApiGenerate = ApiGenerateOk | ApiGenerateErr;
 
 export default function QuizPageClient() {
   console.log("[QuizPageClient] render");
-  const searchParams = useSearchParams();
 
   const [state, setState] = useState<QuizStateShape>(() => emptyQuizState());
   const { quiz, answers, result, score, isFinished } = state;
@@ -36,10 +34,19 @@ export default function QuizPageClient() {
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    const id = searchParams.get("userId");
-    console.log("USER ID:", id);
-    if (id) setUserId(id);
-  }, [searchParams]);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("userId");
+
+      console.log("FULL URL:", window.location.href);
+      console.log("USER ID DETECTED:", id);
+
+      if (id) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserId(id);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,8 +165,6 @@ export default function QuizPageClient() {
     const payload: WebhookPayload = {
       userId,
       score: built.score,
-      correctCount: built.correctCount,
-      totalQuestions: TOTAL_QUESTIONS,
       answers,
     };
 
@@ -245,10 +250,9 @@ export default function QuizPageClient() {
         <p className="mt-1 text-sm text-zinc-500">
           1問10点・100点満点 / 60点以上 → 合格
         </p>
-        {userId ? (
-          <p className="mt-2 text-xs text-zinc-400">userId: {userId}</p>
-        ) : (
-          <p className="mt-2 text-xs text-red-600">
+        <p className="mt-2 text-xs text-zinc-400">userId: {userId || "(empty)"}</p>
+        {!userId && (
+          <p style={{ color: "red" }}>
             userId 未指定（LINEのURLからアクセスしてください）
           </p>
         )}
