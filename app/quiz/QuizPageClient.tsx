@@ -292,6 +292,20 @@ export default function QuizPageClient() {
         )}
       </header>
 
+      {isFinished && (
+        <section className="mb-6 rounded-2xl bg-white p-5 shadow-md ring-2 ring-emerald-200 dark:bg-zinc-900 dark:ring-emerald-900">
+          <h2 className="text-xl font-bold">試験結果</h2>
+          {resultDate && <p className="mt-1 text-sm text-zinc-500">{resultDate}</p>}
+          <p className="mt-3 text-2xl font-extrabold">あなたのスコア: {score} / 100</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            正解数: {result.filter((r) => r.isCorrect).length} / {TOTAL_QUESTIONS}
+          </p>
+          <p className="mt-1 text-base font-semibold">
+            {passed ? "クリア" : "再テストしてください"}
+          </p>
+        </section>
+      )}
+
       <ol className="flex flex-col gap-5">
         {quiz.map((q, idx) => (
           <li key={`${idx}-${q.question.slice(0, 12)}`}>
@@ -303,77 +317,69 @@ export default function QuizPageClient() {
               <div className="mt-4 flex flex-col gap-3">
                 {q.options.map((opt) => {
                   const selected = answers[idx] === opt;
+                  const showFeedback = isFinished && selected;
+                  const isCorrectOption = opt === q.answer;
                   return (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => selectOption(idx, opt)}
                       className={`min-h-[52px] rounded-xl border-2 px-4 py-3 text-left text-base font-medium transition-colors ${
-                        selected
-                          ? "border-emerald-600 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-                          : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
+                        isFinished
+                          ? selected
+                            ? isCorrectOption
+                              ? "border-emerald-600 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
+                              : "border-red-600 bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100"
+                            : isCorrectOption
+                              ? "border-emerald-500 bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/70 dark:text-emerald-100"
+                              : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                          : selected
+                            ? "border-emerald-600 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
+                            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
                       }`}
                     >
-                      {opt}
+                      <span>{opt}</span>
+                      {showFeedback && (
+                        <span className="ml-2 text-sm font-semibold">
+                          {isCorrectOption ? "（あなたの正解）" : "（あなたの回答）"}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+
+              {isFinished && (() => {
+                const selected = answers[idx] ?? "";
+                const isCorrect = selected === q.answer;
+                return (
+                  <div
+                    className={`mt-4 rounded-xl border p-3 ${
+                      isCorrect
+                        ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40"
+                        : "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40"
+                    }`}
+                  >
+                    <p
+                      className={`font-semibold ${
+                        isCorrect ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {isCorrect ? "✅ 正解" : "❌ 不正解"}
+                    </p>
+                    <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-200">
+                      正解: {q.answer}
+                    </p>
+                    <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-200">
+                      {q.explanation || "解説なし"}
+                    </p>
+                  </div>
+                );
+              })()}
             </section>
           </li>
         ))}
       </ol>
-
-      {/* 結果ブロック */}
-      {isFinished && result.length > 0 && (
-        <section className="mt-8 rounded-2xl bg-white p-6 shadow-md ring-2 ring-emerald-200 dark:bg-zinc-900 dark:ring-emerald-900">
-          <h2 className="text-xl font-bold">試験結果</h2>
-          {resultDate && (
-            <p className="mt-1 text-sm text-zinc-500">{resultDate}</p>
-          )}
-          <p className="mt-4 text-4xl font-extrabold tabular-nums">
-            あなたのスコア: {score} / 100
-          </p>
-          <p className="mt-2 text-lg font-semibold">
-            {passed ? "クリア" : "再テストしてください"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-600">
-            正解数: {result.filter((r) => r.isCorrect).length} / {TOTAL_QUESTIONS}
-          </p>
-
-          <ul className="mt-6 flex max-h-[60vh] flex-col gap-4 overflow-y-auto rounded-xl bg-zinc-50 p-4 dark:bg-zinc-950">
-            {result.map((r, i) => (
-              <li
-                key={i}
-                className="rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              >
-                <p className="font-semibold text-zinc-800 dark:text-zinc-100">
-                  Q{i + 1}. {r.question}
-                </p>
-                <p className="mt-2">
-                  <span className="text-zinc-500">あなたの回答: </span>
-                  {r.userAnswer || "—"}
-                </p>
-                <p className="mt-1">
-                  <span className="text-zinc-500">正解: </span>
-                  {r.correctAnswer}
-                </p>
-                <p className="mt-2 font-medium">
-                  {r.isCorrect ? (
-                    <span className="text-emerald-600">正解</span>
-                  ) : (
-                    <span className="text-red-600">不正解</span>
-                  )}
-                </p>
-                <p className="mt-2 text-zinc-600">
-                  <span className="font-medium text-zinc-700">解説: </span>
-                  {r.explanation}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {submitError && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
